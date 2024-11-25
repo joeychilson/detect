@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Image Object Detection</title>
+        <style>
+            :root {
+                --primary: #2563eb;
+                --primary-hover: #1d4ed8;
+                --gray-50: #f9fafb;
+                --gray-100: #f3f4f6;
+                --gray-200: #e5e7eb;
+                --gray-700: #374151;
+                --gray-800: #1f2937;
+                --gray-900: #111827;
+                --red-50: #fef2f2;
+                --red-500: #ef4444;
+            }
+
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                    Roboto, "Helvetica Neue", Arial, sans-serif;
+                background: var(--gray-50);
+                color: var(--gray-900);
+                line-height: 1.5;
+            }
+
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 2rem 1rem;
+            }
+
+            .header {
+                text-align: center;
+                margin-bottom: 2rem;
+            }
+
+            .title {
+                font-size: 2.5rem;
+                font-weight: 700;
+                color: var(--gray-900);
+                margin-bottom: 0.5rem;
+            }
+
+            .subtitle {
+                font-size: 1.125rem;
+                color: var(--gray-700);
+            }
+
+            .settings {
+                max-width: 48rem;
+                margin: 0 auto 2rem;
+                padding: 1.5rem;
+                background: white;
+                border-radius: 0.75rem;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+
+            .settings-title {
+                font-size: 1.125rem;
+                font-weight: 600;
+                margin-bottom: 1rem;
+                color: var(--gray-900);
+            }
+
+            .settings-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1.5rem;
+            }
+
+            .setting-group {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .setting-label {
+                font-size: 0.875rem;
+                font-weight: 500;
+                color: var(--gray-700);
+                display: flex;
+                justify-content: space-between;
+            }
+
+            .setting-value {
+                font-family: monospace;
+                color: var(--primary);
+            }
+
+            .setting-input {
+                width: 100%;
+                accent-color: var(--primary);
+            }
+
+            .upload-container {
+                max-width: 48rem;
+                margin: 0 auto;
+            }
+
+            .upload-area {
+                border: 2px dashed var(--gray-200);
+                border-radius: 0.75rem;
+                padding: 3rem;
+                text-align: center;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .upload-area:hover {
+                border-color: var(--gray-700);
+                background: var(--gray-50);
+            }
+
+            .upload-area.drag-over {
+                border-color: var(--primary);
+                background: var(--gray-50);
+            }
+
+            .upload-icon {
+                width: 3rem;
+                height: 3rem;
+                margin-bottom: 1rem;
+                color: var(--gray-700);
+            }
+
+            .upload-text {
+                font-size: 1.25rem;
+                font-weight: 500;
+                color: var(--gray-900);
+                margin-bottom: 0.5rem;
+            }
+
+            .upload-subtext {
+                font-size: 0.875rem;
+                color: var(--gray-700);
+            }
+
+            .image-container {
+                position: relative;
+                max-width: 48rem;
+                margin: 2rem auto;
+                background: black;
+                border-radius: 0.75rem;
+                overflow: hidden;
+            }
+
+            .image-preview {
+                width: 100%;
+                height: auto;
+                display: block;
+            }
+
+            .detection-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+            }
+
+            .controls {
+                display: flex;
+                gap: 1rem;
+                justify-content: center;
+                margin-top: 1.5rem;
+            }
+
+            .btn {
+                display: inline-flex;
+                align-items: center;
+                padding: 0.5rem 1rem;
+                border-radius: 0.5rem;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s;
+                border: none;
+                font-size: 0.875rem;
+            }
+
+            .btn-primary {
+                background: var(--primary);
+                color: white;
+            }
+
+            .btn-primary:hover {
+                background: var(--primary-hover);
+            }
+
+            .btn-secondary {
+                background: var(--gray-100);
+                color: var(--gray-700);
+            }
+
+            .btn-secondary:hover {
+                background: var(--gray-200);
+            }
+
+            .btn svg {
+                width: 1rem;
+                height: 1rem;
+                margin-right: 0.5rem;
+            }
+
+            .error-message {
+                background: var(--red-50);
+                border-left: 4px solid var(--red-500);
+                color: var(--red-500);
+                padding: 1rem;
+                border-radius: 0.5rem;
+                margin-bottom: 1.5rem;
+                display: none;
+            }
+
+            .error-message.visible {
+                display: block;
+            }
+
+            @media (max-width: 640px) {
+                .container {
+                    padding: 1rem;
+                }
+
+                .title {
+                    font-size: 2rem;
+                }
+
+                .upload-area {
+                    padding: 2rem 1rem;
+                }
+
+                .settings-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <header class="header">
+                <h1 class="title">Image Object Detection</h1>
+                <p class="subtitle">
+                    Upload an image to detect objects and save the results
+                </p>
+            </header>
+
+            <div class="settings">
+                <h2 class="settings-title">Detection Settings</h2>
+                <div class="settings-grid">
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            Confidence Threshold
+                            <span class="setting-value" id="confidence-value"
+                                >0.50</span
+                            >
+                        </label>
+                        <input
+                            type="range"
+                            id="confidence"
+                            class="setting-input"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value="0.5"
+                        />
+                    </div>
+                    <div class="setting-group">
+                        <label class="setting-label">
+                            IoU Threshold
+                            <span class="setting-value" id="iou-value"
+                                >0.50</span
+                            >
+                        </label>
+                        <input
+                            type="range"
+                            id="iou"
+                            class="setting-input"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value="0.5"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div class="error-message" id="error">
+                <span id="error-text"></span>
+            </div>
+
+            <div class="upload-container">
+                <div id="upload-area" class="upload-area">
+                    <svg
+                        class="upload-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                        ></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <p class="upload-text">Drop your image here</p>
+                    <p class="upload-subtext">or click to select a file</p>
+                    <input
+                        type="file"
+                        id="file-input"
+                        accept="image/*"
+                        style="display: none"
+                    />
+                </div>
+
+                <div
+                    id="image-container"
+                    class="image-container"
+                    style="display: none"
+                >
+                    <img id="image" class="image-preview" />
+                    <canvas id="canvas" style="display: none"></canvas>
+                    <div id="detections" class="detection-overlay"></div>
+                </div>
+
+                <div id="controls" class="controls" style="display: none">
+                    <button id="detect" class="btn btn-primary">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 16v-4m0-4h.01"></path>
+                        </svg>
+                        Detect Objects
+                    </button>
+                    <button id="save" class="btn btn-primary">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path
+                                d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+                            ></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                        Save Image
+                    </button>
+                    <button id="reset" class="btn btn-secondary">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <polyline points="1 4 1 10 7 10"></polyline>
+                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                        </svg>
+                        Try Another Image
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            class ImageDetector {
+                constructor() {
+                    this.image = document.getElementById("image");
+                    this.canvas = document.getElementById("canvas");
+                    this.detectionsDiv = document.getElementById("detections");
+                    this.uploadArea = document.getElementById("upload-area");
+                    this.fileInput = document.getElementById("file-input");
+                    this.imageContainer =
+                        document.getElementById("image-container");
+                    this.controls = document.getElementById("controls");
+                    this.detectBtn = document.getElementById("detect");
+                    this.saveBtn = document.getElementById("save");
+                    this.resetBtn = document.getElementById("reset");
+                    this.errorDiv = document.getElementById("error");
+                    this.errorText = document.getElementById("error-text");
+
+                    this.confidenceSlider =
+                        document.getElementById("confidence");
+                    this.confidenceValue =
+                        document.getElementById("confidence-value");
+                    this.iouSlider = document.getElementById("iou");
+                    this.iouValue = document.getElementById("iou-value");
+
+                    this.currentFile = null;
+                    this.currentDetections = null;
+
+                    this.initializeEventListeners();
+                }
+
+                initializeEventListeners() {
+                    this.confidenceSlider.addEventListener("input", (e) => {
+                        this.confidenceValue.textContent = parseFloat(
+                            e.target.value,
+                        ).toFixed(2);
+                    });
+                    this.iouSlider.addEventListener("input", (e) => {
+                        this.iouValue.textContent = parseFloat(
+                            e.target.value,
+                        ).toFixed(2);
+                    });
+
+                    this.uploadArea.addEventListener("click", () =>
+                        this.fileInput.click(),
+                    );
+                    this.uploadArea.addEventListener("dragover", (e) => {
+                        e.preventDefault();
+                        this.uploadArea.classList.add("drag-over");
+                    });
+                    this.uploadArea.addEventListener("dragleave", () =>
+                        this.uploadArea.classList.remove("drag-over"),
+                    );
+                    this.uploadArea.addEventListener("drop", (e) => {
+                        e.preventDefault();
+                        this.uploadArea.classList.remove("drag-over");
+                        this.handleImageUpload(e.dataTransfer.files);
+                    });
+                    this.fileInput.addEventListener("change", (e) =>
+                        this.handleImageUpload(e.target.files),
+                    );
+
+                    this.detectBtn.addEventListener("click", () =>
+                        this.processImage(),
+                    );
+                    this.saveBtn.addEventListener("click", () =>
+                        this.saveImage(),
+                    );
+                    this.resetBtn.addEventListener("click", () => this.reset());
+                }
+
+                showError(message) {
+                    this.errorText.textContent = message;
+                    this.errorDiv.classList.add("visible");
+                }
+
+                hideError() {
+                    this.errorDiv.classList.remove("visible");
+                }
+
+                async handleImageUpload(files) {
+                    if (!files.length) return;
+
+                    const file = files[0];
+                    if (!file.type.startsWith("image/")) {
+                        this.showError("Please upload an image file");
+                        return;
+                    }
+
+                    this.hideError();
+                    const url = URL.createObjectURL(file);
+                    this.image.src = url;
+                    this.currentFile = file;
+
+                    this.uploadArea.style.display = "none";
+                    this.imageContainer.style.display = "block";
+                    this.controls.style.display = "flex";
+                }
+
+                async processImage() {
+                    if (!this.currentFile) return;
+
+                    try {
+                        const formData = new FormData();
+                        formData.append("image", this.currentFile);
+
+                        const confidence = parseFloat(
+                            this.confidenceSlider.value,
+                        );
+                        const iou = parseFloat(this.iouSlider.value);
+
+                        const response = await fetch(
+                            `/api/detect?confidence=${confidence}&iou=${iou}`,
+                            {
+                                method: "POST",
+                                body: formData,
+                            },
+                        );
+
+                        if (!response.ok) throw new Error("Detection failed");
+
+                        const result = await response.json();
+                        this.renderDetections(result);
+                    } catch (err) {
+                        console.error("Image processing error:", err);
+                        this.showError("Failed to process image");
+                    }
+                }
+
+                static COLORS = [
+                    {
+                        border: "rgb(255, 99, 132)",
+                        bg: "rgba(255, 99, 132, 0.6)",
+                    },
+                    {
+                        border: "rgb(75, 192, 192)",
+                        bg: "rgba(75, 192, 192, 0.6)",
+                    },
+                    {
+                        border: "rgb(54, 162, 235)",
+                        bg: "rgba(54, 162, 235, 0.6)",
+                    },
+                    {
+                        border: "rgb(255, 206, 86)",
+                        bg: "rgba(255, 206, 86, 0.6)",
+                    },
+                    {
+                        border: "rgb(153, 102, 255)",
+                        bg: "rgba(153, 102, 255, 0.6)",
+                    },
+                    {
+                        border: "rgb(255, 159, 64)",
+                        bg: "rgba(255, 159, 64, 0.6)",
+                    },
+                    {
+                        border: "rgb(76, 230, 141)",
+                        bg: "rgba(76, 230, 141, 0.6)",
+                    },
+                    {
+                        border: "rgb(255, 99, 255)",
+                        bg: "rgba(255, 99, 255, 0.6)",
+                    },
+                    {
+                        border: "rgb(99, 255, 255)",
+                        bg: "rgba(99, 255, 255, 0.6)",
+                    },
+                    {
+                        border: "rgb(230, 180, 80)",
+                        bg: "rgba(230, 180, 80, 0.6)",
+                    },
+                ];
+
+                renderDetections(result) {
+                    if (!result.detections) return;
+
+                    this.currentDetections = result.detections;
+
+                    const imageRect = this.image.getBoundingClientRect();
+                    const scaleX = imageRect.width / this.image.naturalWidth;
+                    const scaleY = imageRect.height / this.image.naturalHeight;
+
+                    this.detectionsDiv.innerHTML = result.detections
+                        .map((det, index) => {
+                            const color =
+                                ImageDetector.COLORS[
+                                    det.class % ImageDetector.COLORS.length
+                                ];
+                            const x = det.box.x1 * scaleX;
+                            const y = det.box.y1 * scaleY;
+                            const width = (det.box.x2 - det.box.x1) * scaleX;
+                            const height = (det.box.y2 - det.box.y1) * scaleY;
+
+                            return this.createDetectionBox(
+                                x,
+                                y,
+                                width,
+                                height,
+                                color,
+                                det,
+                            );
+                        })
+                        .join("");
+                }
+
+                createDetectionBox(x, y, width, height, color, detection) {
+                    return `
+                                                <div style="
+                                                    position: absolute;
+                                                    left: ${x}px;
+                                                    top: ${y}px;
+                                                    width: ${width}px;
+                                                    height: ${height}px;
+                                                    border: 2px solid ${color.border};
+                                                    box-sizing: border-box;
+                                                    pointer-events: none;
+                                                    z-index: 10;
+                                                ">
+                                                    <div style="
+                                                        position: absolute;
+                                                        top: 0;
+                                                        left: 0;
+                                                        transform: translateY(-100%);
+                                                        background: ${color.bg};
+                                                        color: white;
+                                                        padding: 2px 6px;
+                                                        font-size: 12px;
+                                                        line-height: 1.2;
+                                                        white-space: nowrap;
+                                                        border-radius: 2px 2px 0 0;
+                                                        font-weight: 500;
+                                                        text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+                                                        pointer-events: none;
+                                                        z-index: 11;
+                                                        border-bottom: 2px solid ${color.border};
+                                                    ">
+                                                        ${detection.label} (${Math.round(detection.confidence * 100)}%)
+                                                    </div>
+                                                </div>
+                                            `;
+                }
+
+                async saveImage() {
+                    if (!this.currentDetections) {
+                        this.showError("No detections to save");
+                        return;
+                    }
+
+                    try {
+                        // Create a new canvas to combine image and detections
+                        const saveCanvas = document.createElement("canvas");
+                        const ctx = saveCanvas.getContext("2d");
+
+                        // Set canvas dimensions to match original image
+                        saveCanvas.width = this.image.naturalWidth;
+                        saveCanvas.height = this.image.naturalHeight;
+
+                        // Draw the original image
+                        ctx.drawImage(this.image, 0, 0);
+
+                        // Draw detections using the original data
+                        this.currentDetections.forEach((det) => {
+                            const color =
+                                ImageDetector.COLORS[
+                                    det.class % ImageDetector.COLORS.length
+                                ];
+
+                            // Draw detection box
+                            ctx.strokeStyle = color.border;
+                            ctx.lineWidth = Math.max(
+                                2,
+                                this.image.naturalWidth / 400,
+                            );
+                            ctx.strokeRect(
+                                det.box.x1,
+                                det.box.y1,
+                                det.box.x2 - det.box.x1,
+                                det.box.y2 - det.box.y1,
+                            );
+
+                            // Prepare label text
+                            const labelText = `${det.label} (${Math.round(det.confidence * 100)}%)`;
+
+                            // Calculate font size based on image size (min 12px, max 24px)
+                            const fontSize = Math.min(
+                                Math.max(12, this.image.naturalWidth / 100),
+                                24,
+                            );
+                            ctx.font = `${fontSize}px sans-serif`;
+
+                            // Calculate label dimensions
+                            const padding = fontSize / 3;
+                            const labelWidth =
+                                ctx.measureText(labelText).width + padding * 2;
+                            const labelHeight = fontSize + padding * 2;
+
+                            // Ensure label doesn't go outside image bounds
+                            const labelX = det.box.x1;
+                            const labelY = Math.max(labelHeight, det.box.y1);
+
+                            // Draw label background
+                            ctx.fillStyle = color.bg;
+                            ctx.fillRect(
+                                labelX,
+                                labelY - labelHeight,
+                                labelWidth,
+                                labelHeight,
+                            );
+
+                            // Draw label border
+                            ctx.strokeStyle = color.border;
+                            ctx.lineWidth = 1;
+                            ctx.strokeRect(
+                                labelX,
+                                labelY - labelHeight,
+                                labelWidth,
+                                labelHeight,
+                            );
+
+                            // Draw label text
+                            ctx.fillStyle = "white";
+                            ctx.textBaseline = "middle";
+                            ctx.fillText(
+                                labelText,
+                                labelX + padding,
+                                labelY - labelHeight / 2,
+                            );
+                        });
+
+                        // Convert to blob and download
+                        saveCanvas.toBlob((blob) => {
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = "detection-result.png";
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                        }, "image/png");
+                    } catch (err) {
+                        console.error("Error saving image:", err);
+                        this.showError("Failed to save image");
+                    }
+                }
+
+                reset() {
+                    if (this.image.src) {
+                        URL.revokeObjectURL(this.image.src);
+                        this.image.src = "";
+                    }
+                    this.currentFile = null;
+                    this.currentDetections = null;
+                    this.detectionsDiv.innerHTML = "";
+                    this.imageContainer.style.display = "none";
+                    this.controls.style.display = "none";
+                    this.uploadArea.style.display = "block";
+                    this.hideError();
+                }
+            }
+
+            document.addEventListener("DOMContentLoaded", () => {
+                const detector = new ImageDetector();
+            });
+        </script>
+    </body>
+</html>
